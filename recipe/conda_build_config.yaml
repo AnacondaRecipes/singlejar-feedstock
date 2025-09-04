@@ -1,0 +1,3 @@
+# Avoid using the bazel-toolchain crosstools file. For some reason this hinges on whether or not we're building CUDA things...
+cuda_compiler_version:
+  - "None"
