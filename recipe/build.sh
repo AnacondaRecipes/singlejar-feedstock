@@ -4,7 +4,7 @@ set -euxo pipefail
 
 source gen-bazel-toolchain
 
-export ABSEIL_VERSION=$(conda list -p $PREFIX libabseil --fields version | grep -v '#')
+export ABSEIL_VERSION=$(conda list -p $PREFIX libabseil | grep -v '^#' | tr -s ' ' | cut -f 2 -d ' ')
 export PROTOC_VERSION=$(conda list -p $PREFIX libprotobuf | grep -v '^#' | tr -s ' ' | cut -f 2 -d ' ' | sed -E 's/^[0-9]+\.([0-9]+\.[0-9]+)$/\1/')
 export PROTOBUF_JAVA_MAJOR_VERSION="4"
 export EXTRA_BAZEL_ARGS="--host_javabase=@local_jdk//:jdk"
