@@ -30,6 +30,7 @@ pushd src/tools/singlejar
 	--platforms=//bazel_toolchain:target_platform \
 	--host_platform=//bazel_toolchain:build_platform \
 	--cpu ${TARGET_CPU} \
+	--check_direct_dependencies=off \
 	singlejar singlejar_local
 mkdir -p $PREFIX/bin
 cp ../../../bazel-out/${TARGET_CPU}-fastbuild/bin/src/tools/singlejar/singlejar $PREFIX/bin
