@@ -39,7 +39,7 @@ requirements:
   host:
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
-    - protobuf-bazel-rules 29.3
+    - protobuf-bazel-rules 33.0
 
 test:
   commands:

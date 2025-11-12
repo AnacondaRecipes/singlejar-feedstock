@@ -13,10 +13,8 @@ sed -ie "s:\${PREFIX}:${PREFIX}:" src/BUILD
 sed -ie "s:\${BUILD_PREFIX}:${BUILD_PREFIX}:" third_party/grpc/BUILD
 sed -ie "s:\${BUILD_PREFIX}:${BUILD_PREFIX}:" third_party/systemlibs/protobuf/BUILD
 sed -ie "s:\${BUILD_PREFIX}:${BUILD_PREFIX}:" third_party/ijar/BUILD
-# TODO: Use ${ABSEIL_VERSION} here again once we have a compatible abseil.
-# Force building with abseil 20250127.0 instead of the desired 20250127.1
-sed -ie "s:ABSEIL_VERSION:20250127.1:" third_party/systemlibs/protobuf/MODULE.bazel
-sed -ie "s:ABSEIL_VERSION:20250127.1:" MODULE.bazel
+sed -ie "s:ABSEIL_VERSION:${ABSEIL_VERSION}:" third_party/systemlibs/protobuf/MODULE.bazel
+sed -ie "s:ABSEIL_VERSION:${ABSEIL_VERSION}:" MODULE.bazel
 
 cp -ap $PREFIX/share/bazel/protobuf/bazel third_party/systemlibs/protobuf/
 

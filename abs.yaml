@@ -1,0 +1,5 @@
+staging_channel_upload_target: protobuf-6.33.0-build-4
+
+channels:
+  - https://staging.continuum.io/pbp/protobuf-6.33.0-build-4
+  - https://staging.continuum.io/pbp/fs/lief-feedstock/pr10/1e1d643
