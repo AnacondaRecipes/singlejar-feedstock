@@ -1,4 +1,4 @@
-{% set version = "7.6.1" %}
+{% set version = "9.0.0" %}
 
 {% set base_url = "https://github.com/bazelbuild/bazel/releases/download" %}
 
@@ -8,24 +8,22 @@ package:
 
 source:
   - url: {{ base_url }}/{{ version }}/bazel-{{ version }}-dist.zip
-    sha256: c1106db93eb8a719a6e2e1e9327f41b003b6d7f7e9d04f206057990775a7760e
+    sha256: dfa496089624d726a158afcac353725166f81c5708ee1ecc9e662f2891b3544d
     patches:
       # Keep these patches in sync with the relevant ones from bazel-feedstock.
       - patches/0001-allow-args-to-be-passed-to-bazel_build.patch
       - patches/0002-Build-with-native-dependencies.patch
       - patches/0003-use-C-17.patch
-      - patches/0004-dont-redefine-fdopen.patch
-
-  - fn: bazel
+  - fn: bazel-{{ version }}
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-x86_64  # [build_platform == "linux-64"]
     sha256: 5536a6553897daddcd0a530be42667ca1e3f14ef8d1eaf7fad8f74c63e0340b6  # [build_platform == "linux-64"]
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-arm64   # [build_platform == "linux-aarch64"]
     sha256: 9bc3369ded2e0b4b5d5280b62b37be999c5917bf2801281e7001d35660ef779e  # [build_platform == "linux-aarch64"]
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-darwin-arm64  # [build_platform == "osx-arm64"]
-    sha256: cb90df58de62e697624ea1e3a7617c6dabfc9cc23660a73fb3a649f236e7bfc3  # [build_platform == "osx-arm64"]
+    sha256: 97b647cadcb90514f4b4bd2cbbceed37d57bcda48d429edc62abcd72c03e5b40  # [build_platform == "osx-arm64"]
 
 build:
-  number: 1
+  number: 0
   skip: true  # [win]
 
 requirements:
@@ -33,13 +31,14 @@ requirements:
     - {{ compiler('c') }}
     - {{ stdlib('c') }}
     - {{ compiler('cxx') }}
-    - bazel-toolchain >=0.2.0
+    - bazel-toolchain >=0.5.0
     - openjdk
     - libprotobuf
     - sed
   host:
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
+    - protobuf-bazel-rules >=33.5
 
 test:
   commands:

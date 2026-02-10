@@ -1,63 +1,78 @@
-From 0ffa82c55a3daca2cfebbe7b55f9464ccef286f7 Mon Sep 17 00:00:00 2001
+From 8644338b66c78384e339c7a13421f1cdd8a04aef Mon Sep 17 00:00:00 2001
 From: "Uwe L. Korn" <uwelk@xhochy.com>
 Date: Sun, 21 Mar 2021 21:26:54 +0100
 Subject: [PATCH 2/3] Build with native dependencies
 
 ---
- MODULE.bazel                                  |   9 +-
+ MODULE.bazel                                  |  18 +-
  .../java/com/google/devtools/build/lib/BUILD  |   2 +-
  third_party/grpc/BUILD                        |  23 +-
- third_party/systemlibs/protobuf/BUILD         | 141 ++++++
- third_party/systemlibs/protobuf/MODULE.bazel  |  27 ++
+ third_party/systemlibs/protobuf/BUILD         | 151 ++++++
+ third_party/systemlibs/protobuf/MODULE.bazel  |  28 ++
  third_party/systemlibs/protobuf/WORKSPACE     |   2 +
  third_party/systemlibs/protobuf/protobuf.bzl  | 436 ++++++++++++++++++
+ .../src/google/protobuf/compiler/BUILD        |   8 +
+ .../systemlibs/protobuf/toolchain/BUILD       |   0
+ .../protobuf/toolchain/platforms.bzl          |  64 +++
  third_party/systemlibs/protobuf_deps.bzl      |   2 +
- 8 files changed, 624 insertions(+), 18 deletions(-)
+ 11 files changed, 706 insertions(+), 28 deletions(-)
  create mode 100644 third_party/systemlibs/protobuf/BUILD
  create mode 100644 third_party/systemlibs/protobuf/MODULE.bazel
  create mode 100644 third_party/systemlibs/protobuf/WORKSPACE
  create mode 100644 third_party/systemlibs/protobuf/protobuf.bzl
+ create mode 100644 third_party/systemlibs/protobuf/src/google/protobuf/compiler/BUILD
+ create mode 100644 third_party/systemlibs/protobuf/toolchain/BUILD
+ create mode 100644 third_party/systemlibs/protobuf/toolchain/platforms.bzl
  create mode 100644 third_party/systemlibs/protobuf_deps.bzl
 
 diff --git a/MODULE.bazel b/MODULE.bazel
-index 84e08db938..c505a78987 100644
+index d33fff2..d357414 100755
 --- a/MODULE.bazel
 +++ b/MODULE.bazel
-@@ -15,6 +15,10 @@ module(
- bazel_dep(name = "rules_license", version = "0.0.7")
- bazel_dep(name = "bazel_skylib", version = "1.6.1")
- bazel_dep(name = "protobuf", version = "21.7", repo_name = "com_google_protobuf")
+@@ -13,7 +13,7 @@ module(
+ # Bazel module dependencies
+ # =========================================
+ 
+-bazel_dep(name = "abseil-cpp", version = "20250814.1")
++bazel_dep(name = "abseil-cpp", version = "ABSEIL_VERSION")
+ bazel_dep(name = "bazel_skylib", version = "1.8.2")
+ bazel_dep(name = "blake3", version = "1.8.2")
+ bazel_dep(name = "googleapis-grpc-java", version = "1.0.0")
+@@ -37,6 +37,10 @@ bazel_dep(name = "stardoc", version = "0.8.0", repo_name = "io_bazel_skydoc")
+ bazel_dep(name = "with_cfg.bzl", version = "0.13.0")
+ bazel_dep(name = "zlib", version = "1.3.1.bcr.7")
+ bazel_dep(name = "zstd-jni", version = "1.5.6-9")
 +local_path_override(
 +    module_name = "protobuf",
 +    path = "./third_party/systemlibs/protobuf",
 +)
- bazel_dep(name = "grpc", version = "1.48.1.bcr.1", repo_name = "com_github_grpc_grpc")
- bazel_dep(name = "platforms", version = "0.0.10")
- bazel_dep(name = "rules_pkg", version = "0.9.1")
-@@ -113,6 +117,8 @@ maven.install(
-         "com.google.http-client:google-http-client-gson:1.42.0",
-         "com.google.j2objc:j2objc-annotations:1.3",
-         "com.google.turbine:turbine:0.6.0",
-+        "com.google.protobuf:protobuf-java:PROTOBUF_JAVA_MAJOR_VERSION.PROTOC_VERSION",
-+        "com.google.protobuf:protobuf-java-util:PROTOBUF_JAVA_MAJOR_VERSION.PROTOC_VERSION",
-         "com.guardsquare:proguard-base:jar:7.5.0",
-         "com.ryanharter.auto.value:auto-value-gson-extension:1.3.1",
-         "com.ryanharter.auto.value:auto-value-gson-factory:1.3.1",
-@@ -190,9 +196,6 @@ maven.install(
-         "org.apache.httpcomponents:httpclient",
-         "org.apache.httpcomponents:httpcore",
-         "org.eclipse.jgit:org.eclipse.jgit",
--        # We build protobuf Java library from source, exclude protobuf jars to be safe.
--        "com.google.protobuf:protobuf-java",
--        "com.google.protobuf:protobuf-javalite",
-     ],
-     # Don't forget to change this to back to True before submitting your change.
-     fail_if_repin_required = True,
+ 
+ # Depend on apple_support first and then rules_cc so that the Xcode toolchain
+ # from apple_support wins over the generic Unix toolchain from rules_cc.
+@@ -97,18 +101,6 @@ single_version_override(
+     version = "1.2.1.bcr.1",
+ )
+ 
+-# 1. Expose @com_google_protobuf//java/core:lite_runtime_only
+-# due to https://github.com/protocolbuffers/protobuf/commit/079be27925955348d1b3cb30ffbfa33dcec5778c
+-# We need to package the lite runtime jar for Bazel's bootstrap build
+-# 2. Partially revert of https://github.com/protocolbuffers/protobuf/commit/7ec5e19c0743b80c5097434a05cc0e972e7b4e7a
+-# to support grpc
+-single_version_override(
+-    module_name = "protobuf",
+-    patch_strip = 1,
+-    patches = ["//third_party:protobuf.patch"],
+-    version = "33.4",
+-)
+-
+ # Remove once the following PRs are available in a grpc-java release.
+ #   https://github.com/grpc/grpc-java/pull/12148
+ #   https://github.com/grpc/grpc-java/pull/12207
 diff --git a/src/main/java/com/google/devtools/build/lib/BUILD b/src/main/java/com/google/devtools/build/lib/BUILD
-index b247593d57..7ba466ea57 100644
+index d385177..db65056 100755
 --- a/src/main/java/com/google/devtools/build/lib/BUILD
 +++ b/src/main/java/com/google/devtools/build/lib/BUILD
-@@ -474,7 +474,7 @@ java_library(
+@@ -582,7 +582,7 @@ java_library(
          "//third_party:guava",
          "//third_party:jsr305",
          "@com_google_protobuf//:protobuf_java",
@@ -67,13 +82,13 @@ index b247593d57..7ba466ea57 100644
      ],
  )
 diff --git a/third_party/grpc/BUILD b/third_party/grpc/BUILD
-index d8f64ef471..e622c42aac 100644
+index 1ef653c..f9c470f 100755
 --- a/third_party/grpc/BUILD
 +++ b/third_party/grpc/BUILD
-@@ -44,28 +44,23 @@ filegroup(
+@@ -39,28 +39,23 @@ filegroup(
      ],
  )
-
+ 
 -alias(
 +genrule(
      name = "cpp_plugin",
@@ -86,7 +101,7 @@ index d8f64ef471..e622c42aac 100644
 +    executable = 1,
 +    visibility = ["//visibility:public"],
  )
-
+ 
  alias(
      name = "grpc++_codegen_proto",
 -    actual = select({
@@ -95,7 +110,7 @@ index d8f64ef471..e622c42aac 100644
 -    }),
 +    actual = "grpc++_unsecure",
  )
-
+ 
 -alias(
 +cc_library(
      name = "grpc++_unsecure",
@@ -106,14 +121,18 @@ index d8f64ef471..e622c42aac 100644
 +    linkopts = ["-lgrpc++_unsecure", "-lgrpc_unsecure","-lgpr"],
 +    visibility = ["//visibility:public"],
  )
-
+ 
  filegroup(
 diff --git a/third_party/systemlibs/protobuf/BUILD b/third_party/systemlibs/protobuf/BUILD
 new file mode 100644
-index 0000000000..47fbb7375d
+index 0000000..b81b43c
 --- /dev/null
 +++ b/third_party/systemlibs/protobuf/BUILD
-@@ -0,0 +1,141 @@
+@@ -0,0 +1,151 @@
++load("@rules_java//java:defs.bzl", "java_library")
++load("@rules_java//java:defs.bzl", "java_library")
++load("@rules_java//java:defs.bzl", "java_library")
++load("@rules_java//java:defs.bzl", "java_library")
 +load("@rules_proto//proto:defs.bzl", "proto_lang_toolchain", "proto_library")
 +load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test", "objc_library")
 +load(
@@ -127,6 +146,12 @@ index 0000000000..47fbb7375d
 +
 +filegroup(
 +    name = "LICENSE",
++    visibility = ["//visibility:public"],
++)
++
++alias(
++    name = "license",
++    actual = ":LICENSE",
 +    visibility = ["//visibility:public"],
 +)
 +
@@ -216,21 +241,21 @@ index 0000000000..47fbb7375d
 +    visibility = ["//visibility:public"],
 +)
 +
-+py_library(
-+    name = "protobuf_python",
-+    srcs_version = "PY3",
-+    visibility = ["//visibility:public"],
-+)
++#py_library(
++#    name = "protobuf_python",
++#    srcs_version = "PY3",
++#    visibility = ["//visibility:public"],
++#)
 +
 +java_library(
 +    name = "protobuf_java",
-+    exports = ["@maven//:com_google_protobuf_protobuf_java"],
++    deps = ["@maven//:com_google_protobuf_protobuf_java"],
 +    visibility = ["//visibility:public"],
 +)
 +
 +java_library(
 +    name = "protobuf_java_util",
-+    exports = ["@maven//:com_google_protobuf_protobuf_java_util"],
++    deps = ["@maven//:com_google_protobuf_protobuf_java_util"],
 +    visibility = ["//visibility:public"],
 +)
 +
@@ -257,10 +282,10 @@ index 0000000000..47fbb7375d
 +) for proto in WELL_KNOWN_PROTO_MAP.items()]
 diff --git a/third_party/systemlibs/protobuf/MODULE.bazel b/third_party/systemlibs/protobuf/MODULE.bazel
 new file mode 100644
-index 0000000000..57f0460b36
+index 0000000..08105f7
 --- /dev/null
 +++ b/third_party/systemlibs/protobuf/MODULE.bazel
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,28 @@
 +# TODO: migrate all dependencies from WORKSPACE to MODULE.bazel
 +# https://github.com/protocolbuffers/protobuf/issues/14313
 +module(
@@ -274,7 +299,8 @@ index 0000000000..57f0460b36
 +# Bzlmod follows MVS:
 +# https://bazel.build/versions/6.0.0/build/bzlmod#version-resolution
 +# Thus the highest version in their module graph is resolved.
-+bazel_dep(name = "abseil-cpp", version = "20230125.1", repo_name = "com_google_absl")
++bazel_dep(name = "bazel_features", version = "1.21.0", repo_name = "proto_bazel_features")
++bazel_dep(name = "abseil-cpp", version = "ABSEIL_VERSION", repo_name = "com_google_absl")
 +bazel_dep(name = "bazel_skylib", version = "1.4.1")
 +bazel_dep(name = "jsoncpp", version = "1.9.5")
 +bazel_dep(name = "rules_cc", version = "0.0.9")
@@ -290,7 +316,7 @@ index 0000000000..57f0460b36
 +
 diff --git a/third_party/systemlibs/protobuf/WORKSPACE b/third_party/systemlibs/protobuf/WORKSPACE
 new file mode 100644
-index 0000000000..45c689c3bd
+index 0000000..45c689c
 --- /dev/null
 +++ b/third_party/systemlibs/protobuf/WORKSPACE
 @@ -0,0 +1,2 @@
@@ -298,7 +324,7 @@ index 0000000000..45c689c3bd
 +
 diff --git a/third_party/systemlibs/protobuf/protobuf.bzl b/third_party/systemlibs/protobuf/protobuf.bzl
 new file mode 100644
-index 0000000000..8b3a16e7cf
+index 0000000..a40f438
 --- /dev/null
 +++ b/third_party/systemlibs/protobuf/protobuf.bzl
 @@ -0,0 +1,436 @@
@@ -441,7 +467,7 @@ index 0000000000..8b3a16e7cf
 +proto_gen = rule(
 +    attrs = {
 +        "srcs": attr.label_list(allow_files = True),
-+        "deps": attr.label_list(providers = ["proto"]),
++        "deps": attr.label_list(providers = [ProtoInfo]),
 +        "includes": attr.string_list(),
 +        "protoc": attr.label(
 +            cfg = "host",
@@ -538,7 +564,7 @@ index 0000000000..8b3a16e7cf
 +        )
 +
 +        # An empty cc_library to make rule dependency consistent.
-+        native.cc_library(
++        cc_library(
 +            name = name,
 +            **kargs
 +        )
@@ -570,7 +596,7 @@ index 0000000000..8b3a16e7cf
 +    if use_grpc_plugin:
 +        cc_libs = cc_libs + ["//external:grpc_lib"]
 +
-+    native.cc_library(
++    cc_library(
 +        name = name,
 +        srcs = gen_srcs,
 +        hdrs = gen_hdrs,
@@ -738,9 +764,96 @@ index 0000000000..8b3a16e7cf
 +    current = apple_common.dotted_version(native.bazel_version)
 +    if current.compare_to(expected) < 0:
 +        fail("Bazel must be newer than 0.5.4")
+diff --git a/third_party/systemlibs/protobuf/src/google/protobuf/compiler/BUILD b/third_party/systemlibs/protobuf/src/google/protobuf/compiler/BUILD
+new file mode 100644
+index 0000000..1c6b883
+--- /dev/null
++++ b/third_party/systemlibs/protobuf/src/google/protobuf/compiler/BUILD
+@@ -0,0 +1,8 @@
++genrule(
++    name = "protoc_minimal",
++    outs = ["protoc_minimal.bin"],
++    cmd = "ln -s ${BUILD_PREFIX}/bin/protoc $@",
++    executable = 1,
++    visibility = ["//visibility:public"],
++)
++
+diff --git a/third_party/systemlibs/protobuf/toolchain/BUILD b/third_party/systemlibs/protobuf/toolchain/BUILD
+new file mode 100644
+index 0000000..e69de29
+diff --git a/third_party/systemlibs/protobuf/toolchain/platforms.bzl b/third_party/systemlibs/protobuf/toolchain/platforms.bzl
+new file mode 100644
+index 0000000..dbd386a
+--- /dev/null
++++ b/third_party/systemlibs/protobuf/toolchain/platforms.bzl
+@@ -0,0 +1,64 @@
++"List of published platforms on protobuf GitHub releases"
++
++# Keys are chosen to match the filenames published on protocolbuffers/protobuf releases
++# NB: keys in this list are nearly identical to /toolchain/BUILD.bazel#TOOLCHAINS
++# Perhaps we should share code.
++PROTOBUF_PLATFORMS = {
++    # "k8", # this is in /toolchain/BUILD.bazel but not a released platform
++    # "osx-universal_binary", # this is not in /toolchain/BUILD.bazel
++    # but also Bazel will never request it, as we have a darwin binary for each architecture
++    "linux-aarch_64": {
++        "compatible_with": [
++            "@platforms//os:linux",
++            "@platforms//cpu:aarch64",
++        ],
++    },
++    "linux-ppcle_64": {
++        "compatible_with": [
++            "@platforms//os:linux",
++            "@platforms//cpu:ppc64le",
++        ],
++    },
++    "linux-s390_64": {
++        "compatible_with": [
++            "@platforms//os:linux",
++            "@platforms//cpu:s390x",
++        ],
++    },
++    "linux-x86_32": {
++        "compatible_with": [
++            "@platforms//os:linux",
++            "@platforms//cpu:x86_32",
++        ],
++    },
++    "linux-x86_64": {
++        "compatible_with": [
++            "@platforms//os:linux",
++            "@platforms//cpu:x86_64",
++        ],
++    },
++    "osx-aarch_64": {
++        "compatible_with": [
++            "@platforms//os:macos",
++            "@platforms//cpu:aarch64",
++        ],
++    },
++    "osx-x86_64": {
++        "compatible_with": [
++            "@platforms//os:macos",
++            "@platforms//cpu:x86_64",
++        ],
++    },
++    "win32": {
++        "compatible_with": [
++            "@platforms//os:windows",
++            "@platforms//cpu:x86_32",
++        ],
++    },
++    "win64": {
++        "compatible_with": [
++            "@platforms//os:windows",
++            "@platforms//cpu:x86_64",
++        ],
++    },
++}
 diff --git a/third_party/systemlibs/protobuf_deps.bzl b/third_party/systemlibs/protobuf_deps.bzl
 new file mode 100644
-index 0000000000..aafd89b0aa
+index 0000000..aafd89b
 --- /dev/null
 +++ b/third_party/systemlibs/protobuf_deps.bzl
 @@ -0,0 +1,2 @@
