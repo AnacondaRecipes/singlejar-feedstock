@@ -105,7 +105,7 @@ index 1ef653c..f9c470f 100755
 -        "//src/conditions:debian_build": "@debian_cc_deps//:grpc++_unsecure",
 -        "//conditions:default": "@com_github_grpc_grpc//:grpc++_unsecure",
 -    }),
-+    linkopts = ["-lgrpc++_unsecure", "-lgrpc_unsecure","-lgpr"],
++    linkopts = ["-lgrpc++_unsecure", "-lgpr"],
 +    visibility = ["//visibility:public"],
  )
  
@@ -747,6 +747,96 @@ index 0000000..8b3a16e
 +    current = apple_common.dotted_version(native.bazel_version)
 +    if current.compare_to(expected) < 0:
 +        fail("Bazel must be newer than 0.5.4")
+diff --git a/third_party/systemlibs/protobuf_deps.bzl b/third_party/systemlibs/protobuf_deps.bzl
+new file mode 100644
+index 0000000..aafd89b
+diff --git a/third_party/systemlibs/protobuf/src/google/protobuf/compiler/BUILD b/third_party/systemlibs/protobuf/src/google/protobuf/compiler/BUILD
+new file mode 100644
+index 0000000..1c6b883
+--- /dev/null
++++ b/third_party/systemlibs/protobuf/src/google/protobuf/compiler/BUILD
+@@ -0,0 +1,8 @@
++genrule(
++    name = "protoc_minimal",
++    outs = ["protoc_minimal.bin"],
++    cmd = "ln -s ${BUILD_PREFIX}/bin/protoc $@",
++    executable = 1,
++    visibility = ["//visibility:public"],
++)
++
+diff --git a/third_party/systemlibs/protobuf/toolchain/BUILD b/third_party/systemlibs/protobuf/toolchain/BUILD
+new file mode 100644
+index 0000000..e69de29
+diff --git a/third_party/systemlibs/protobuf/toolchain/platforms.bzl b/third_party/systemlibs/protobuf/toolchain/platforms.bzl
+new file mode 100644
+index 0000000..dbd386a
+--- /dev/null
++++ b/third_party/systemlibs/protobuf/toolchain/platforms.bzl
+@@ -0,0 +1,64 @@
++"List of published platforms on protobuf GitHub releases"
++
++# Keys are chosen to match the filenames published on protocolbuffers/protobuf releases
++# NB: keys in this list are nearly identical to /toolchain/BUILD.bazel#TOOLCHAINS
++# Perhaps we should share code.
++PROTOBUF_PLATFORMS = {
++    # "k8", # this is in /toolchain/BUILD.bazel but not a released platform
++    # "osx-universal_binary", # this is not in /toolchain/BUILD.bazel
++    # but also Bazel will never request it, as we have a darwin binary for each architecture
++    "linux-aarch_64": {
++        "compatible_with": [
++            "@platforms//os:linux",
++            "@platforms//cpu:aarch64",
++        ],
++    },
++    "linux-ppcle_64": {
++        "compatible_with": [
++            "@platforms//os:linux",
++            "@platforms//cpu:ppc64le",
++        ],
++    },
++    "linux-s390_64": {
++        "compatible_with": [
++            "@platforms//os:linux",
++            "@platforms//cpu:s390x",
++        ],
++    },
++    "linux-x86_32": {
++        "compatible_with": [
++            "@platforms//os:linux",
++            "@platforms//cpu:x86_32",
++        ],
++    },
++    "linux-x86_64": {
++        "compatible_with": [
++            "@platforms//os:linux",
++            "@platforms//cpu:x86_64",
++        ],
++    },
++    "osx-aarch_64": {
++        "compatible_with": [
++            "@platforms//os:macos",
++            "@platforms//cpu:aarch64",
++        ],
++    },
++    "osx-x86_64": {
++        "compatible_with": [
++            "@platforms//os:macos",
++            "@platforms//cpu:x86_64",
++        ],
++    },
++    "win32": {
++        "compatible_with": [
++            "@platforms//os:windows",
++            "@platforms//cpu:x86_32",
++        ],
++    },
++    "win64": {
++        "compatible_with": [
++            "@platforms//os:windows",
++            "@platforms//cpu:x86_64",
++        ],
++    },
++}
 diff --git a/third_party/systemlibs/protobuf_deps.bzl b/third_party/systemlibs/protobuf_deps.bzl
 new file mode 100644
 index 0000000..aafd89b

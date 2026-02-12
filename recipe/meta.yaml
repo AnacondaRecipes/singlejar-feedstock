@@ -14,7 +14,8 @@ source:
       - patches/0001-allow-args-to-be-passed-to-bazel_build.patch
       - patches/0002-Build-with-native-dependencies.patch
       - patches/0003-use-C-17.patch
-  - fn: bazel
+      - patches/0004-update-dependencies-version.patch
+  - fn: bazel-{{ version }}
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-x86_64  # [build_platform == "linux-64"]
     sha256: 6b238b730c63081aed681dd2818072f73551881c0cc7976ebfb749a4aa8097fe  # [build_platform == "linux-64"]
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-arm64   # [build_platform == "linux-aarch64"]
