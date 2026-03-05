@@ -15,6 +15,8 @@ sed -ie "s:\${BUILD_PREFIX}:${BUILD_PREFIX}:" third_party/grpc/BUILD
 sed -ie "s:\${BUILD_PREFIX}:${BUILD_PREFIX}:" third_party/systemlibs/protobuf/BUILD
 sed -ie "s:\${BUILD_PREFIX}:${BUILD_PREFIX}:" third_party/ijar/BUILD
 
+echo "build --cxxopt=-std=c++17 --host_cxxopt=-std=c++17" >> .bazelrc
+
 chmod +x bazel
 pushd src/tools/singlejar
 ../../../bazel build \
