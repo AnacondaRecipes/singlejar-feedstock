@@ -17,9 +17,9 @@ source:
       - patches/0004-update-dependencies-version.patch
   - fn: bazel-{{ version }}
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-x86_64  # [build_platform == "linux-64"]
-    sha256: 6b238b730c63081aed681dd2818072f73551881c0cc7976ebfb749a4aa8097fe  # [build_platform == "linux-64"]
+    sha256: 02c355741012603b703e2a8d07ded1212f92ec6eacdabdd552695f8083e7a594  # [build_platform == "linux-64"]
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-arm64   # [build_platform == "linux-aarch64"]
-    sha256: 57d6bc110053c7926b6e0acc5dff2d5eea9d4b59ad4c180ce2bbff84759b6c1b  # [build_platform == "linux-aarch64"]
+    sha256: 19b9c2f6dbb87d9d9c64a951e01b9e62abe8b8ea07550206609c62b7f0f12ae9  # [build_platform == "linux-aarch64"]
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-darwin-arm64  # [build_platform == "osx-arm64"]
     sha256: 61776a387f2ea2a515eb92bc1c520b6af6451148216244058f6ee2b4c012cd89  # [build_platform == "osx-arm64"]
 
