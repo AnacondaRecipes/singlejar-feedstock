@@ -1,27 +1,25 @@
-{% set version = "8.6.0" %}
-
+{% set name = "singlejar" %}
+{% set version = "9.0.0" %}
 {% set base_url = "https://github.com/bazelbuild/bazel/releases/download" %}
 
 package:
-  name: singlejar
+  name: {{ name }}
   version: {{ version }}
 
 source:
   - url: {{ base_url }}/{{ version }}/bazel-{{ version }}-dist.zip
-    sha256: 13a84586429b6084b13bd5040d78deda58d523012151e71e7d4be0c63dd831f9
+    sha256: dfa496089624d726a158afcac353725166f81c5708ee1ecc9e662f2891b3544d
     patches:
       # Keep these patches in sync with the relevant ones from bazel-feedstock.
-      - patches/0001-allow-args-to-be-passed-to-bazel_build.patch
-      - patches/0002-Build-with-native-dependencies.patch
+      - patches/0001-pass-args-to-bazel_build.patch
       - patches/0003-use-C-17.patch
-      - patches/0004-update-dependencies-version.patch
   - fn: bazel-{{ version }}
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-x86_64  # [build_platform == "linux-64"]
-    sha256: 02c355741012603b703e2a8d07ded1212f92ec6eacdabdd552695f8083e7a594  # [build_platform == "linux-64"]
+    sha256: ecc5a225b5fcad3e0c08ec24d266f2b2a75b24259180e64583bb2d3c1586e986  # [build_platform == "linux-64"]
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-arm64   # [build_platform == "linux-aarch64"]
-    sha256: 19b9c2f6dbb87d9d9c64a951e01b9e62abe8b8ea07550206609c62b7f0f12ae9  # [build_platform == "linux-aarch64"]
+    sha256: 0e77523ece802d0596b789471bac6b0945968e58702e3246c9dcd4f5295bde6c  # [build_platform == "linux-aarch64"]
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-darwin-arm64  # [build_platform == "osx-arm64"]
-    sha256: 61776a387f2ea2a515eb92bc1c520b6af6451148216244058f6ee2b4c012cd89  # [build_platform == "osx-arm64"]
+    sha256: 97b647cadcb90514f4b4bd2cbbceed37d57bcda48d429edc62abcd72c03e5b40  # [build_platform == "osx-arm64"]
 
 build:
   number: 0
@@ -29,10 +27,10 @@ build:
 
 requirements:
   build:
-    - {{ compiler('c') }}
     - {{ stdlib('c') }}
+    - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - bazel-toolchain >=0.2.0,<0.5.0
+    - bazel-toolchain >=0.2.0
     - openjdk
     - libprotobuf
     - sed
@@ -48,12 +46,13 @@ test:
 
 about:
   home: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
-  dev_url: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
   license: Apache-2.0
   license_family: MIT
   license_file: LICENSE
   summary: A tool for generating singleton jars
   description: A tool for generating singleton jars
+  doc_url: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
+  dev_url: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
 
 extra:
   skip-lints:
