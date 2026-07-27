@@ -1,2 +1,3 @@
 channels:
+  - https://staging.continuum.io/pbp/fs/bazel-toolchain-feedstock/pr10/67d383c
   - https://staging.continuum.io/pbp/fs/protobuf-bazel-rules-feedstock/pr5/5b39280
