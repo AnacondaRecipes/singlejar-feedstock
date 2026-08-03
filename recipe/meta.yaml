@@ -22,7 +22,7 @@ source:
     sha256: 97b647cadcb90514f4b4bd2cbbceed37d57bcda48d429edc62abcd72c03e5b40  # [build_platform == "osx-arm64"]
 
 build:
-  number: 0
+  number: 1
   skip: true  # [win]
 
 requirements:
@@ -30,13 +30,13 @@ requirements:
     - {{ stdlib('c') }}
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - bazel-toolchain >=0.2.0
+    - bazel-toolchain >=0.5.0
     - openjdk
-    - libprotobuf
+    - libprotobuf 7.35.1
     - sed
   host:
-    - libabseil {{ libabseil }}
-    - libprotobuf {{ libprotobuf }}
+    - libabseil 20260526.0
+    - libprotobuf 7.35.1
     - protobuf-bazel-rules >=33.5
 
 test:
