@@ -1,3 +1,30 @@
+From 982fa95e6503834f13137b8fc210aa30306d0bcb Mon Sep 17 00:00:00 2001
+From: "Uwe L. Korn" <uwelk@xhochy.com>
+Date: Sun, 21 Mar 2021 21:26:54 +0100
+Subject: [PATCH 2/3] Build with native dependencies
+
+---
+ MODULE.bazel                                  |  10 +-
+ .../java/com/google/devtools/build/lib/BUILD  |   2 +-
+ third_party/grpc/BUILD                        |  23 +-
+ third_party/systemlibs/protobuf/BUILD         | 147 ++++++
+ third_party/systemlibs/protobuf/MODULE.bazel  |  29 ++
+ third_party/systemlibs/protobuf/WORKSPACE     |   2 +
+ third_party/systemlibs/protobuf/protobuf.bzl  | 436 ++++++++++++++++++
+ .../src/google/protobuf/compiler/BUILD        |   8 +
+ .../systemlibs/protobuf/toolchain/BUILD       |   0
+ .../protobuf/toolchain/platforms.bzl          |  64 +++
+ third_party/systemlibs/protobuf_deps.bzl      |   2 +
+ 11 files changed, 706 insertions(+), 17 deletions(-)
+ create mode 100644 third_party/systemlibs/protobuf/BUILD
+ create mode 100644 third_party/systemlibs/protobuf/MODULE.bazel
+ create mode 100644 third_party/systemlibs/protobuf/WORKSPACE
+ create mode 100644 third_party/systemlibs/protobuf/protobuf.bzl
+ create mode 100644 third_party/systemlibs/protobuf/src/google/protobuf/compiler/BUILD
+ create mode 100644 third_party/systemlibs/protobuf/toolchain/BUILD
+ create mode 100644 third_party/systemlibs/protobuf/toolchain/platforms.bzl
+ create mode 100644 third_party/systemlibs/protobuf_deps.bzl
+
 diff --git a/MODULE.bazel b/MODULE.bazel
 index 6b5ac8d..2541e4c 100755
 --- a/MODULE.bazel
