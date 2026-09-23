@@ -8,10 +8,10 @@ Subject: [PATCH 3/3] use C++17
  1 file changed, 2 insertions(+)
 
 diff --git a/.bazelrc b/.bazelrc
-index a9c3518..3dc225a 100755
+index 3e35621..565e7fb 100755
 --- a/.bazelrc
 +++ b/.bazelrc
-@@ -94,3 +94,5 @@ test:ci-windows --test_env=JAVA_HOME
+@@ -93,3 +93,5 @@ test:ci-windows --test_env=JAVA_HOME
  test:ci-windows --test_env=TEST_INSTALL_BASE=C:/b/bazeltest_install_base
  test:ci-windows --test_env=REPOSITORY_CACHE=C:/b/bazeltest_repo_cache
  test:ci-windows --test_tag_filters=-no_windows,-slow
