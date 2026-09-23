@@ -35,31 +35,39 @@ requirements:
     - bazel-toolchain >=0.2.0,<0.5.0
     - openjdk
     - libprotobuf {{ libprotobuf }}
+    - patchelf  # [linux]
     - sed
   host:
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
-    - protobuf-bazel-rules >=33.5
+    - protobuf-bazel-rules >=33.5  # analint: host_section_needs_exact_pinnings  # build-only rules bundle: the floor tracks whichever protoc the CBC pins, it has no pin of its own
 
 test:
   commands:
     - test -f $PREFIX/bin/singlejar
     - test -f $PREFIX/bin/singlejar_local
+    # Smoke test: pack two files into a jar with each binary, then feed the result
+    # back in through --sources to exercise the input-jar/merge path too. ZIP keeps
+    # entry names verbatim in the local file headers, so a grep proves the round trip.
+    - mkdir -p jar-smoke && cd jar-smoke && echo hello > a.txt && echo world > b.txt
+    - cd jar-smoke && $PREFIX/bin/singlejar --output out.jar --resources a.txt b.txt
+    - cd jar-smoke && $PREFIX/bin/singlejar_local --output out_local.jar --resources a.txt b.txt
+    - cd jar-smoke && $PREFIX/bin/singlejar --output merged.jar --sources out.jar
+    - cd jar-smoke && head -c 2 out.jar | grep -q '^PK'
+    - cd jar-smoke && grep -q 'a.txt' out_local.jar && grep -q 'b.txt' out_local.jar
+    - cd jar-smoke && grep -q 'a.txt' merged.jar && grep -q 'b.txt' merged.jar
 
 about:
   home: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
   dev_url: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
+  doc_url: https://bazel.build/
   license: Apache-2.0
-  license_family: MIT
+  license_family: Apache
   license_file: LICENSE
   summary: A tool for generating singleton jars
   description: A tool for generating singleton jars
 
 extra:
-  skip-lints:
-    - missing_documentation
-    - missing_hash
-    - missing_source
   recipe-maintainers:
     - xhochy
     - h-vetinari
