@@ -46,16 +46,20 @@ test:
   commands:
     - test -f $PREFIX/bin/singlejar
     - test -f $PREFIX/bin/singlejar_local
-    # Smoke test: pack two files into a jar with each binary, then feed the result
-    # back in through --sources to exercise the input-jar/merge path too. ZIP keeps
-    # entry names verbatim in the local file headers, so a grep proves the round trip.
-    - mkdir -p jar-smoke && cd jar-smoke && echo hello > a.txt && echo world > b.txt
-    - cd jar-smoke && $PREFIX/bin/singlejar --output out.jar --resources a.txt b.txt
-    - cd jar-smoke && $PREFIX/bin/singlejar_local --output out_local.jar --resources a.txt b.txt
-    - cd jar-smoke && $PREFIX/bin/singlejar --output merged.jar --sources out.jar
-    - cd jar-smoke && head -c 2 out.jar | grep -q '^PK'
-    - cd jar-smoke && grep -q 'a.txt' out_local.jar && grep -q 'b.txt' out_local.jar
-    - cd jar-smoke && grep -q 'a.txt' merged.jar && grep -q 'b.txt' merged.jar
+    # Smoke test: pack two files into a jar with each binary and merge one back through
+    # --sources (ZIP stores entry names verbatim, so grep proves the round trip). Every
+    # check is a bare command so a failure trips the harness's `set -e`.
+    - smoke=$(mktemp -d)
+    - echo hello > "$smoke/a.txt"
+    - echo world > "$smoke/b.txt"
+    - $PREFIX/bin/singlejar --output "$smoke/singlejar.jar" --resources "$smoke/a.txt" "$smoke/b.txt"
+    - $PREFIX/bin/singlejar_local --output "$smoke/singlejar_local.jar" --resources "$smoke/a.txt" "$smoke/b.txt"
+    - $PREFIX/bin/singlejar --output "$smoke/merged.jar" --sources "$smoke/singlejar.jar"
+    - head -c 2 "$smoke/singlejar.jar" | grep -q '^PK'
+    - grep -q 'a.txt' "$smoke/singlejar_local.jar"
+    - grep -q 'b.txt' "$smoke/singlejar_local.jar"
+    - grep -q 'a.txt' "$smoke/merged.jar"
+    - grep -q 'b.txt' "$smoke/merged.jar"
 
 about:
   home: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
