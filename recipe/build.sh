@@ -42,3 +42,12 @@ pushd src/tools/singlejar
 mkdir -p $PREFIX/bin
 cp ../../../bazel-out/${TARGET_CPU}-fastbuild/bin/src/tools/singlejar/singlejar $PREFIX/bin
 cp ../../../bazel-out/${TARGET_CPU}-fastbuild/bin/src/tools/singlejar/singlejar_local $PREFIX/bin
+
+if [[ "${target_platform}" == linux-* ]]; then
+    # The bazel crosstool bakes "$PREFIX/lib:$BUILD_PREFIX/lib" into the RPATH, so the
+    # shipped binaries keep a hardcoded build-host _build_env path. Rewrite the RPATH to
+    # the relocatable conda location instead. bazel marks its outputs read-only, hence the
+    # chmod, and only singlejar_local links the system libprotobuf/libabseil dynamically.
+    chmod +w $PREFIX/bin/singlejar $PREFIX/bin/singlejar_local
+    patchelf --set-rpath '$ORIGIN/../lib' $PREFIX/bin/singlejar $PREFIX/bin/singlejar_local
+fi

@@ -1,4 +1,4 @@
-{% set version = "8.6.0" %}
+{% set version = "8.8.0" %}
 
 {% set base_url = "https://github.com/bazelbuild/bazel/releases/download" %}
 
@@ -8,7 +8,7 @@ package:
 
 source:
   - url: {{ base_url }}/{{ version }}/bazel-{{ version }}-dist.zip
-    sha256: 13a84586429b6084b13bd5040d78deda58d523012151e71e7d4be0c63dd831f9
+    sha256: 71cea4e6df77d5d85e185db7f238d96db50132bf40c94e4978a35d92eaf42108
     patches:
       # Keep these patches in sync with the relevant ones from bazel-feedstock.
       - patches/0001-allow-args-to-be-passed-to-bazel_build.patch
@@ -17,14 +17,14 @@ source:
       - patches/0004-update-dependencies-version.patch
   - fn: bazel-{{ version }}
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-x86_64  # [build_platform == "linux-64"]
-    sha256: 02c355741012603b703e2a8d07ded1212f92ec6eacdabdd552695f8083e7a594  # [build_platform == "linux-64"]
+    sha256: 4b6a8be4bf1f1f3aac05a0b7ebccfe3c3f12ce6ddb4bdc6593904b9f872a5c3d  # [build_platform == "linux-64"]
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-arm64   # [build_platform == "linux-aarch64"]
-    sha256: 19b9c2f6dbb87d9d9c64a951e01b9e62abe8b8ea07550206609c62b7f0f12ae9  # [build_platform == "linux-aarch64"]
+    sha256: 0490da39cd9de866eb79790accd2df260e4cc86167c84457cc1a702d4058361f  # [build_platform == "linux-aarch64"]
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-darwin-arm64  # [build_platform == "osx-arm64"]
-    sha256: 61776a387f2ea2a515eb92bc1c520b6af6451148216244058f6ee2b4c012cd89  # [build_platform == "osx-arm64"]
+    sha256: 795865814cfa6fed8d54350ada5d9a3e865b8441927092a004142fc7ef67d357  # [build_platform == "osx-arm64"]
 
 build:
-  number: 1
+  number: 0
   skip: true  # [win]
 
 requirements:
@@ -34,32 +34,44 @@ requirements:
     - {{ compiler('cxx') }}
     - bazel-toolchain >=0.2.0,<0.5.0
     - openjdk
-    - libprotobuf 7.35.1
+    - libprotobuf {{ libprotobuf }}
+    - patchelf  # [linux]
     - sed
   host:
-    - libabseil 20260526.0
-    - libprotobuf 7.35.1
-    - protobuf-bazel-rules >=33.5
+    - libabseil {{ libabseil }}
+    - libprotobuf {{ libprotobuf }}
+    - protobuf-bazel-rules >=33.5  # analint: host_section_needs_exact_pinnings  # build-only rules bundle: the floor tracks whichever protoc the CBC pins, it has no pin of its own
 
 test:
   commands:
     - test -f $PREFIX/bin/singlejar
     - test -f $PREFIX/bin/singlejar_local
+    # Smoke test: pack two files into a jar with each binary and merge one back through
+    # --sources (ZIP stores entry names verbatim, so grep proves the round trip). Every
+    # check is a bare command so a failure trips the harness's `set -e`.
+    - smoke=$(mktemp -d)
+    - echo hello > "$smoke/a.txt"
+    - echo world > "$smoke/b.txt"
+    - $PREFIX/bin/singlejar --output "$smoke/singlejar.jar" --resources "$smoke/a.txt" "$smoke/b.txt"
+    - $PREFIX/bin/singlejar_local --output "$smoke/singlejar_local.jar" --resources "$smoke/a.txt" "$smoke/b.txt"
+    - $PREFIX/bin/singlejar --output "$smoke/merged.jar" --sources "$smoke/singlejar.jar"
+    - head -c 2 "$smoke/singlejar.jar" | grep -q '^PK'
+    - grep -q 'a.txt' "$smoke/singlejar_local.jar"
+    - grep -q 'b.txt' "$smoke/singlejar_local.jar"
+    - grep -q 'a.txt' "$smoke/merged.jar"
+    - grep -q 'b.txt' "$smoke/merged.jar"
 
 about:
   home: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
   dev_url: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
+  doc_url: https://bazel.build/
   license: Apache-2.0
-  license_family: MIT
+  license_family: Apache
   license_file: LICENSE
   summary: A tool for generating singleton jars
   description: A tool for generating singleton jars
 
 extra:
-  skip-lints:
-    - missing_documentation
-    - missing_hash
-    - missing_source
   recipe-maintainers:
     - xhochy
     - h-vetinari
