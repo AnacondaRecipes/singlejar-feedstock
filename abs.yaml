@@ -1,2 +1,3 @@
 channels:
-  - https://staging.continuum.io/pbp/fs/bazel-toolchain-feedstock/pr0/67d383c
+# bazel-toolchain
+  - https://package-build.anaconda.com/pkg-orchestrator/v1/channels/graphs/3cfe0052-dbd1-411e-a5da-eb7fdcf726e7
