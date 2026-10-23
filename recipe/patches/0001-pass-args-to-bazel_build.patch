@@ -13,7 +13,7 @@ diff --git a/compile.sh b/compile.sh
 index 4712355..2fc4840 100755
 --- a/compile.sh
 +++ b/compile.sh
-@@ -71,7 +71,7 @@ display "."
+@@ -67,7 +67,7 @@ display "."
  log "Building output/bazel"
  # We set host and target platform directly because we are building for the local
  # host.

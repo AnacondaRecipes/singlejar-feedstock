@@ -10,10 +10,10 @@ fi
 
 source gen-bazel-toolchain
 
-export ABSEIL_VERSION=$(conda list -p $PREFIX libabseil | grep -v '^#' | tr -s ' ' | cut -f 2 -d ' ')
-export PROTOC_VERSION=$(conda list -p $PREFIX libprotobuf | grep -v '^#' | tr -s ' ' | cut -f 2 -d ' ' | sed -E 's/^[0-9]+\.([0-9]+\.[0-9]+)$/\1/')
-export PROTOBUF_JAVA_MAJOR_VERSION="3"
-export EXTRA_BAZEL_ARGS="--host_javabase=@local_jdk//:jdk"
+PROTOC_VERSION=$(${BUILD_PREFIX}/bin/protoc --version | cut -d" " -f2)
+sed -i.bak "s/PROTOC_VERSION/${PROTOC_VERSION}/" third_party/systemlibs/protobuf/MODULE.bazel
+cp -R ${PREFIX}/share/bazel/protobuf/bazel third_party/systemlibs/protobuf/
+ln -s ${BUILD_PREFIX}/bin/protoc third_party/systemlibs/protobuf/protoc
 
 chmod +x bazel-${PKG_VERSION}
 pushd src/tools/singlejar
@@ -21,8 +21,7 @@ pushd src/tools/singlejar
 	--logging=6 \
 	--subcommands \
 	--verbose_failures \
-	--define=PROTOBUF_INCLUDE_PATH=${PREFIX}/include \
-	--noincompatible_enable_proto_toolchain_resolution \
+	--@com_google_protobuf//bazel/flags:allow_nonstandard_protoc=true \
 	--extra_toolchains=//bazel_toolchain:cc_cf_toolchain \
 	--extra_toolchains=//bazel_toolchain:cc_cf_host_toolchain \
 	--platforms=//bazel_toolchain:target_platform \
@@ -32,3 +31,8 @@ pushd src/tools/singlejar
 mkdir -p $PREFIX/bin
 cp ../../../bazel-out/${TARGET_CPU}-fastbuild/bin/src/tools/singlejar/singlejar $PREFIX/bin
 cp ../../../bazel-out/${TARGET_CPU}-fastbuild/bin/src/tools/singlejar/singlejar_local $PREFIX/bin
+
+if [[ "${target_platform}" == linux-* ]]; then
+    chmod +w $PREFIX/bin/singlejar $PREFIX/bin/singlejar_local
+    patchelf --set-rpath '$ORIGIN/../lib' $PREFIX/bin/singlejar $PREFIX/bin/singlejar_local
+fi
