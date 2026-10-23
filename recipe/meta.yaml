@@ -15,6 +15,7 @@ source:
       - patches/0002-Build-with-native-dependencies.patch
       - patches/0003-use-C-17.patch
       - patches/0004-update-dependencies-version.patch
+      - patches/0005-Link-against-the-system-zlib.patch
   - fn: bazel-{{ version }}
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-x86_64  # [build_platform == "linux-64"]
     sha256: 29dc454c2ccb2ba2fe806eb010215c581405d5c273ce226a0c1cd29fb948d6bb  # [build_platform == "linux-64"]
@@ -41,6 +42,7 @@ requirements:
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
     - protobuf-bazel-rules >=33.5  # analint: host_section_needs_exact_pinnings  # build-only rules bundle: the floor tracks whichever protoc the CBC pins, it has no pin of its own
+    - zlib {{ zlib }}
 
 test:
   commands:
