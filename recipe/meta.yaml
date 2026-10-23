@@ -12,7 +12,9 @@ source:
     patches:
       # Keep these patches in sync with the relevant ones from bazel-feedstock.
       - patches/0001-pass-args-to-bazel_build.patch
+      - patches/0002-Build-with-native-dependencies.patch
       - patches/0003-use-C-17.patch
+      - patches/0005-Link-against-the-system-zlib.patch
   - fn: bazel-{{ version }}
     url: {{ base_url }}/{{ version }}/bazel_nojdk-{{ version }}-linux-x86_64  # [build_platform == "linux-64"]
     sha256: 444c309e4d3a3007ef39debdf483e4399912a7d0073f52dfb56352a15a727dd8  # [build_platform == "linux-64"]
@@ -32,33 +34,42 @@ requirements:
     - {{ compiler('cxx') }}
     - bazel-toolchain >=0.5.0
     - openjdk
-    - libprotobuf 7.35.1
+    - libprotobuf {{ libprotobuf }}
+    - patchelf  # [linux]
     - sed
   host:
-    - libabseil 20260526.0
-    - libprotobuf 7.35.1
-    - protobuf-bazel-rules >=33.5
+    - libabseil {{ libabseil }}
+    - libprotobuf {{ libprotobuf }}
+    - protobuf-bazel-rules >=33.5  # analint: host_section_needs_exact_pinnings  # build-only rules bundle: the floor tracks whichever protoc the CBC pins, it has no pin of its own
+    - zlib {{ zlib }}
 
 test:
   commands:
     - test -f $PREFIX/bin/singlejar
     - test -f $PREFIX/bin/singlejar_local
+    - smoke=$(mktemp -d)
+    - echo hello > "$smoke/a.txt"
+    - echo world > "$smoke/b.txt"
+    - $PREFIX/bin/singlejar --output "$smoke/singlejar.jar" --resources "$smoke/a.txt" "$smoke/b.txt"
+    - $PREFIX/bin/singlejar_local --output "$smoke/singlejar_local.jar" --resources "$smoke/a.txt" "$smoke/b.txt"
+    - $PREFIX/bin/singlejar --output "$smoke/merged.jar" --sources "$smoke/singlejar.jar"
+    - head -c 2 "$smoke/singlejar.jar" | grep -q '^PK'
+    - grep -q 'a.txt' "$smoke/singlejar_local.jar"
+    - grep -q 'b.txt' "$smoke/singlejar_local.jar"
+    - grep -q 'a.txt' "$smoke/merged.jar"
+    - grep -q 'b.txt' "$smoke/merged.jar"
 
 about:
   home: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
   license: Apache-2.0
-  license_family: MIT
+  license_family: Apache
   license_file: LICENSE
   summary: A tool for generating singleton jars
   description: A tool for generating singleton jars
-  doc_url: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
+  doc_url: https://bazel.build/
   dev_url: https://github.com/bazelbuild/bazel/tree/master/src/tools/singlejar
 
 extra:
-  skip-lints:
-    - missing_documentation
-    - missing_hash
-    - missing_source
   recipe-maintainers:
     - xhochy
     - h-vetinari
