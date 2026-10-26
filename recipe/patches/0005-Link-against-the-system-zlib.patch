@@ -1,0 +1,50 @@
+From: Eric Lundby <elundby@anaconda.com>
+Subject: [PATCH] Link against the system zlib
+
+Point the Bazel zlib module at the shared library in the conda host prefix
+instead of statically linking the bundled sources.
+---
+diff --git a/MODULE.bazel b/MODULE.bazel
+--- a/MODULE.bazel
++++ b/MODULE.bazel
+@@ -37,6 +37,10 @@ bazel_dep(name = "rules_testing", version = "0.9.0")
+ bazel_dep(name = "stardoc", version = "0.8.0", repo_name = "io_bazel_skydoc")
+ bazel_dep(name = "with_cfg.bzl", version = "0.13.0")
+ bazel_dep(name = "zlib", version = "1.3.1.bcr.7")
++local_path_override(
++    module_name = "zlib",
++    path = "./third_party/systemlibs/zlib",
++)
+ bazel_dep(name = "zstd-jni", version = "1.5.6-9")
+ 
+ # Depend on apple_support first and then rules_cc so that the Xcode toolchain
+diff --git a/third_party/systemlibs/zlib/BUILD b/third_party/systemlibs/zlib/BUILD
+new file mode 100644
+--- /dev/null
++++ b/third_party/systemlibs/zlib/BUILD
+@@ -0,0 +1,13 @@
++load("@rules_cc//cc:defs.bzl", "cc_library")
++
++package(default_visibility = ["//visibility:public"])
++
++cc_library(
++    name = "z",
++    linkopts = ["-lz"],
++)
++
++alias(
++    name = "zlib",
++    actual = ":z",
++)
+diff --git a/third_party/systemlibs/zlib/MODULE.bazel b/third_party/systemlibs/zlib/MODULE.bazel
+new file mode 100644
+--- /dev/null
++++ b/third_party/systemlibs/zlib/MODULE.bazel
+@@ -0,0 +1,7 @@
++module(
++    name = "zlib",
++    version = "1.3.1.bcr.7",
++    compatibility_level = 1,
++)
++
++bazel_dep(name = "rules_cc", version = "0.2.17")

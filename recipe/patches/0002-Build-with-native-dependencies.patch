@@ -1,0 +1,146 @@
+From: Eric Lundby <elundby@anaconda.com>
+Subject: [PATCH] Build with native protobuf dependencies
+
+Use the conda protobuf rules, compiler and shared runtime with Bazel 9's
+proto toolchain resolution instead of building the bundled protobuf.
+---
+diff --git a/MODULE.bazel b/MODULE.bazel
+--- a/MODULE.bazel
++++ b/MODULE.bazel
+@@ -101,20 +101,9 @@ single_version_override(
+     version = "1.2.1.bcr.1",
+ )
+ 
+-# 1. Expose @com_google_protobuf//java/core:lite_runtime_only
+-# due to https://github.com/protocolbuffers/protobuf/commit/079be27925955348d1b3cb30ffbfa33dcec5778c
+-# We need to package the lite runtime jar for Bazel's bootstrap build
+-# 2. Partially revert of https://github.com/protocolbuffers/protobuf/commit/7ec5e19c0743b80c5097434a05cc0e972e7b4e7a
+-# to support grpc
+-# 3. Pull in the removal of the memoizedIsInitialized field for messages with no
+-# required fields early. This reduces the memory usage of Bazel and avoids
+-# spread in memory usage between Bazel and Blaze.
+-# https://github.com/protocolbuffers/protobuf/blob/adf9e8b80fd10398b82e16c4ea72f2d2cffb0e9b/src/google/protobuf/compiler/java/full/message.cc#L884C1-L899C6
+-single_version_override(
++local_path_override(
+     module_name = "protobuf",
+-    patch_strip = 1,
+-    patches = ["//third_party:protobuf.patch"],
+-    version = "33.4",
++    path = "./third_party/systemlibs/protobuf",
+ )
+ 
+ # Remove once the following PRs are available in a grpc-java release.
+diff --git a/third_party/systemlibs/protobuf/BUILD b/third_party/systemlibs/protobuf/BUILD
+new file mode 100644
+--- /dev/null
++++ b/third_party/systemlibs/protobuf/BUILD
+@@ -0,0 +1,32 @@
++load("@rules_cc//cc:cc_library.bzl", "cc_library")
++load("@rules_license//rules:license.bzl", "license")
++load("//bazel/toolchains:proto_lang_toolchain.bzl", "proto_lang_toolchain")
++load("//bazel/toolchains:proto_toolchain.bzl", "proto_toolchain")
++
++package(default_visibility = ["//visibility:public"])
++
++license(
++    name = "license",
++    license_kinds = ["@rules_license//licenses/spdx:BSD-3-Clause"],
++)
++
++exports_files(["protoc", "LICENSE"])
++
++cc_library(
++    name = "protobuf",
++    linkopts = ["-lprotobuf"],
++)
++
++proto_toolchain(
++    name = "conda_proto",
++    proto_compiler = ":protoc",
++)
++
++proto_lang_toolchain(
++    name = "cc_toolchain",
++    command_line = "--cpp_out=$(OUT)",
++    runtime = ":protobuf",
++    toolchain_type = "//bazel/private:cc_toolchain_type",
++)
++
++alias(name = "protobuf_lite", actual = ":protobuf")
+diff --git a/third_party/systemlibs/protobuf/MODULE.bazel b/third_party/systemlibs/protobuf/MODULE.bazel
+new file mode 100644
+--- /dev/null
++++ b/third_party/systemlibs/protobuf/MODULE.bazel
+@@ -0,0 +1,23 @@
++module(
++    name = "protobuf",
++    version = "PROTOC_VERSION",
++    compatibility_level = 1,
++    repo_name = "com_google_protobuf",
++)
++
++bazel_dep(name = "bazel_features", version = "1.42.1", repo_name = "proto_bazel_features")
++bazel_dep(name = "bazel_skylib", version = "1.8.2")
++bazel_dep(name = "rules_cc", version = "0.2.17")
++bazel_dep(name = "rules_java", version = "9.1.0")
++bazel_dep(name = "rules_jvm_external", version = "6.6")
++bazel_dep(name = "rules_license", version = "1.0.0")
++bazel_dep(name = "rules_python", version = "1.7.0")
++bazel_dep(name = "rules_shell", version = "0.6.1")
++
++register_toolchains(
++    "//:conda_proto_toolchain",
++    "//:cc_toolchain_toolchain",
++)
++
++maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
++use_repo(maven, "maven")
+diff --git a/third_party/systemlibs/protobuf/toolchain/BUILD b/third_party/systemlibs/protobuf/toolchain/BUILD
+new file mode 100644
+--- /dev/null
++++ b/third_party/systemlibs/protobuf/toolchain/BUILD
+@@ -0,0 +1 @@
++exports_files(["platforms.bzl"])
+diff --git a/third_party/systemlibs/protobuf/toolchain/platforms.bzl b/third_party/systemlibs/protobuf/toolchain/platforms.bzl
+new file mode 100644
+--- /dev/null
++++ b/third_party/systemlibs/protobuf/toolchain/platforms.bzl
+@@ -0,0 +1 @@
++PROTOBUF_PLATFORMS = {}
+diff --git a/third_party/systemlibs/protobuf/LICENSE b/third_party/systemlibs/protobuf/LICENSE
+new file mode 100644
+--- /dev/null
++++ b/third_party/systemlibs/protobuf/LICENSE
+@@ -0,0 +1,31 @@
++Copyright 2008 Google Inc.  All rights reserved.
++
++Redistribution and use in source and binary forms, with or without
++modification, are permitted provided that the following conditions are
++met:
++
++    * Redistributions of source code must retain the above copyright
++notice, this list of conditions and the following disclaimer.
++    * Redistributions in binary form must reproduce the above
++copyright notice, this list of conditions and the following disclaimer
++in the documentation and/or other materials provided with the
++distribution.
++    * Neither the name of Google Inc. nor the names of its
++contributors may be used to endorse or promote products derived from
++this software without specific prior written permission.
++
++THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
++OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
++LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
++DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++
++Code generated by the Protocol Buffer compiler is owned by the owner
++of the input file used when generating it.  This code is not
++standalone and requires a support library to be linked with it.  This
++support library is itself covered by the above license.
