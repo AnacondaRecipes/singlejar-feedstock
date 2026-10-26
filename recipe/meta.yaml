@@ -26,6 +26,8 @@ source:
 build:
   number: 0
   skip: true  # [win]
+  ignore_run_exports:
+    - libabseil  # headers only; neither binary links abseil directly (libprotobuf brings its own)
 
 requirements:
   build:
